@@ -93,69 +93,6 @@ class MyModel1(pl.LightningModule):
             return optim.SGD(self.parameters(), lr=LR)
 
 
-def network():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = MyModel1().to(device)
-    loss_fn = nn.NLLLoss()
-    return model, device, loss_fn
-
-
-def train_validate(model, dataset_module, device, loss_fn):
-    optimizer = model.configure_optimizers()
-    train_loader = dataset_module.train_dataloader()
-    test_loader = dataset_module.test_dataloader()
-
-    for epoch in range(Epochs):
-        model.train()
-        train_epoch_loss = 0
-        for images, labels in train_loader:
-            images, labels = images.to(device), labels.to(device)
-            # flatten the images to batch_size x 784
-            images = images.view(images.shape[0], -1)
-            # forward pass
-            outputs = model(images)
-            # back propagation
-            train_batch_loss = loss_fn(outputs, labels)
-            optimizer.zero_grad()
-            train_batch_loss.backward()
-            # Weight updates
-            optimizer.step()
-            train_epoch_loss += train_batch_loss.item()
-
-        # One epoch of training complete
-        # calculate average training epoch loss
-        train_epoch_loss = train_epoch_loss / len(train_loader)
-
-        with torch.no_grad():
-            test_epoch_acc = 0
-            test_epoch_loss = 0
-            model.eval()
-            for images, labels in test_loader:
-                images, labels = images.to(device), labels.to(device)
-                # flatten images to batch_size x 784
-                images = images.view(images.shape[0], -1)
-                # make predictions
-                test_outputs = model(images)
-                # calculate test loss
-                test_batch_loss = loss_fn(test_outputs, labels)
-                test_epoch_loss += test_batch_loss
-
-                # get probabilities, extract the class associated with highest probability
-                proba = torch.exp(test_outputs)
-                _, pred_labels = proba.topk(1, dim=1)
-
-                # compare actual labels and predicted labels
-                result = pred_labels == labels.view(pred_labels.shape)
-                batch_acc = torch.mean(result.type(torch.FloatTensor))
-                test_epoch_acc += batch_acc.item()
-
-            test_epoch_loss = test_epoch_loss / len(test_loader)
-            test_epoch_acc = test_epoch_acc / len(test_loader)
-            print(f'Epoch: {epoch} -> train_loss: {train_epoch_loss:.19f}, val_loss: {test_epoch_loss:.19f}, ',
-                  f'val_acc: {test_epoch_acc * 100:.2f}%')
-
-
-
 @hydra.main(config_path="config", config_name="config.yaml", version_base="1.1")
 def hydra_data_parse(cfg):
     global Adam, LR, Epochs, Batch_size
@@ -171,9 +108,8 @@ if __name__ == "__main__":
     print(f"The number of epochs is {Epochs}")
     print(f"The batch size is {Batch_size}")
 
-    dm = MNISTDataModule()
-    dm.prepare_data()
-    dm.setup()
+    model = MyModel1()
+    datamodule = MNISTDataModule()
 
-    model, device, loss_fn = network()
-    train_validate(model, dm, device, loss_fn)
+    trainer = pl.Trainer(devices="auto", accelerator="auto", max_epochs=Epochs)
+    trainer.fit(model, datamodule=datamodule)
