@@ -1,4 +1,4 @@
-adam: True
-lr: 1e-4
+optimizer: sgd
+optimizer.lr: 1e-4
 epochs: 25
 batch_size: 10

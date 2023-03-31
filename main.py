@@ -19,7 +19,7 @@ from collections import OrderedDict
 import pytorch_lightning as pl
 import numpy as np
 
-Adam = True
+optimizer = 'adam'
 LR = 1e-4
 Epochs = 25
 Batch_size = 10
@@ -87,7 +87,7 @@ class MyModel1(pl.LightningModule):
         return self.fc1(x)
 
     def configure_optimizers(self):
-        if Adam:
+        if optimizer == 'adam':
             return optim.Adam(self.parameters(), lr=LR)
         else:
             return optim.SGD(self.parameters(), lr=LR)
@@ -95,15 +95,15 @@ class MyModel1(pl.LightningModule):
 
 @hydra.main(config_path="config", config_name="config.yaml", version_base="1.1")
 def hydra_data_parse(cfg):
-    global Adam, LR, Epochs, Batch_size
-    Adam = cfg.adam
-    LR = cfg.lr
+    global optimizer, LR, Epochs, Batch_size
+    optimizer = cfg.optimizer
+    LR = cfg['optimizer.lr']
     Epochs = cfg.epochs
     Batch_size = cfg.batch_size
 
 if __name__ == "__main__":
     hydra_data_parse()
-    print(f"Is it Adam {Adam}")
+    print(f"The optimizer is {optimizer}")
     print(f"The learning rate is {LR}")
     print(f"The number of epochs is {Epochs}")
     print(f"The batch size is {Batch_size}")
